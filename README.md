@@ -1,5 +1,8 @@
-OTX Golang API Client
+Open Threat Exchange Go API Client
 -----------------------------
+
+![alt tag](https://i.imgur.com/I0USmqj.png)
+
 ### Overview
 
 A working client implementation for https://otx.alienvault.com/ written in Golang
