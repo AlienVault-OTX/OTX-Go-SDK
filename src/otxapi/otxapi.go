@@ -149,15 +149,14 @@ func (c *OTXUserDetailService) Get() (UserDetail, *Response, error) {
 
 	req, err := c.client.NewRequest("GET", userURLPath, nil)
 	if err != nil {
-		fmt.Println("error not nil after new request")
 		return UserDetail{}, nil, err
 	}
 	req.Header.Set("X-OTX-API-KEY", fmt.Sprintf("%s", os.Getenv("X_OTX_API_KEY")))
 
 	userdetail := new(UserDetail)
-	resp, _ := c.client.Do(req, userdetail)
-	if resp.StatusCode != 200 {
-		return *userdetail, resp, err
+	resp, err := c.client.Do(req, userdetail)
+	if err != nil {
+		return UserDetail{}, resp, err
 	}
 	json.Unmarshal(resp.RawContent, &(userdetail))
 	json.Unmarshal(resp.RawContent, &(resp.Content))
@@ -195,19 +194,18 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 
 	// check response for error here
 	fmt.Printf("%s response status: %d\n", req.URL.Path, resp.StatusCode)
-	//	err = CheckResponse(resp)
-	//	if err != nil {
-	//		// even though there was an error, we still return the response
-	//		// in case the caller wants to inspect it further
-	//		return response, err
-	//	}
+		err = CheckResponse(resp)
+		if err != nil {
+			// even though there was an error, we still return the response
+			// in case the caller wants to inspect it further
+			return response, err
+		}
 
 	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Printf("%s", err)
 		os.Exit(1)
 	}
-
 	response.RawContent = content
 	return response, err
 }
@@ -250,3 +248,44 @@ func newResponse(r *http.Response) *Response {
 	response := &Response{Response: r}
 	return response
 }
+
+
+type Error struct {
+	Resource string `json:"resource"` // resource on which the error occurred
+	Field    string `json:"field"`    // field on which the error occurred
+	Code     string `json:"code"`     // validation error code
+}
+
+func (e *Error) Error() string {
+	return fmt.Sprintf("%v error caused by %v field on %v resource",
+		e.Code, e.Field, e.Resource)
+}
+
+// CheckResponse checks the API response for errors, and returns them if
+// present.  A response is considered an error if it has a status code outside
+// the 200 range.  API error responses are expected to have either no response
+// body, or a JSON response body that maps to ErrorResponse.  Any other
+// response body will be silently ignored.
+func CheckResponse(r *http.Response) error {
+	if c := r.StatusCode; 200 <= c && c <= 299 {
+		return nil
+	}
+	errorResponse := &ErrorResponse{Response: r}
+	data, err := ioutil.ReadAll(r.Body)
+	if err == nil && data != nil {
+		json.Unmarshal(data, errorResponse)
+	}
+	return errorResponse
+}
+
+type ErrorResponse struct {
+	Response *http.Response // HTTP response that caused this error
+	Message  string         `json:"detail"` // error message
+}
+
+func (r *ErrorResponse) Error() string {
+	return fmt.Sprintf("%v %v: %d %v",
+		r.Response.Request.Method, r.Response.Request.URL,
+		r.Response.StatusCode, r.Message)
+}
+
