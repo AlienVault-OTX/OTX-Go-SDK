@@ -22,7 +22,6 @@ const (
 	pulseID              = "56cdb0a04637f275671672f3"
 	pulseDetailURLPath   = "api/v1/pulses/"
 	userURLPath          = "api/v1/user/"
-	APIKey               = ""
 	apiVersion           = "v1"
 )
 
@@ -90,8 +89,7 @@ func addOptions(s string, opt interface{}) (string, error) {
 func (c *OTXPulseDetailService) Get(id_string string) (PulseDetail, Response, error) {
 	client := &http.Client{}
 
-	requestpath := fmt.Sprintf("%s/%s/%s/", defaultBaseURL, pulseDetailURLPath, id_string)
-	req, _ := http.NewRequest(get, requestpath, nil)
+	req, _ := http.NewRequest(get, fmt.Sprintf("%s/%s/%s/", defaultBaseURL, pulseDetailURLPath, id_string), nil)
 	req.Header.Set("X-OTX-API-KEY", fmt.Sprintf("%s", os.Getenv("X_OTX_API_KEY")))
 
 	response, _ := client.Do(req)
@@ -103,22 +101,15 @@ func (c *OTXPulseDetailService) Get(id_string string) (PulseDetail, Response, er
 		os.Exit(1)
 	}
 	pulse_detail := new(PulseDetail)
-	err = json.Unmarshal(contents, &(pulse_detail))
+	json.Unmarshal(contents, &(pulse_detail))
 	json.Unmarshal(contents, &(resp.Content))
-	if err != nil {
-		fmt.Println("error not nil on json unmarshall")
-		fmt.Println(err)
-	}
-	fmt.Println("pulse: ")
-	fmt.Println(*(pulse_detail.CreatedAt))
+
 	return *pulse_detail, resp, err
 }
 
 func (c *OTXThreatIntelFeedService) List(opt *ListOptions) (ThreatIntelFeed, Response, error) {
 	client := &http.Client{}
-
-	requestpath := defaultBaseURL + subscriptionsURLPath
-	requestpath, err := addOptions(requestpath, opt)
+	requestpath, err := addOptions(defaultBaseURL + subscriptionsURLPath, opt)
 	if err != nil {
 		return ThreatIntelFeed{}, Response{}, err
 	}
@@ -147,18 +138,18 @@ func (c *OTXThreatIntelFeedService) List(opt *ListOptions) (ThreatIntelFeed, Res
 
 func (c *OTXUserDetailService) Get() (UserDetail, *Response, error) {
 
-	req, err := c.client.NewRequest("GET", userURLPath, nil)
+	req, err := c.client.NewRequest(get, userURLPath, nil)
 	if err != nil {
 		return UserDetail{}, nil, err
 	}
 	req.Header.Set("X-OTX-API-KEY", fmt.Sprintf("%s", os.Getenv("X_OTX_API_KEY")))
 
-	userdetail := new(UserDetail)
+	userdetail := &UserDetail{}
 	resp, err := c.client.Do(req, userdetail)
 	if err != nil {
 		return UserDetail{}, resp, err
 	}
-	json.Unmarshal(resp.RawContent, &(userdetail))
+	err = json.Unmarshal(resp.RawContent, &(userdetail))
 	json.Unmarshal(resp.RawContent, &(resp.Content))
 
 	return *userdetail, resp, err
@@ -192,8 +183,7 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 
 	response := newResponse(resp)
 
-	// check response for error here
-	fmt.Printf("%s response status: %d\n", req.URL.Path, resp.StatusCode)
+	// check response for error
 		err = CheckResponse(resp)
 		if err != nil {
 			// even though there was an error, we still return the response
@@ -249,18 +239,6 @@ func newResponse(r *http.Response) *Response {
 	return response
 }
 
-
-type Error struct {
-	Resource string `json:"resource"` // resource on which the error occurred
-	Field    string `json:"field"`    // field on which the error occurred
-	Code     string `json:"code"`     // validation error code
-}
-
-func (e *Error) Error() string {
-	return fmt.Sprintf("%v error caused by %v field on %v resource",
-		e.Code, e.Field, e.Resource)
-}
-
 // CheckResponse checks the API response for errors, and returns them if
 // present.  A response is considered an error if it has a status code outside
 // the 200 range.  API error responses are expected to have either no response
@@ -278,6 +256,15 @@ func CheckResponse(r *http.Response) error {
 	return errorResponse
 }
 
+type Error struct {
+	Message    string
+}
+
+func (e *Error) Error() string {
+	return fmt.Sprintf("error: %v",
+		e.Message)
+}
+
 type ErrorResponse struct {
 	Response *http.Response // HTTP response that caused this error
 	Message  string         `json:"detail"` // error message
@@ -288,4 +275,3 @@ func (r *ErrorResponse) Error() string {
 		r.Response.Request.Method, r.Response.Request.URL,
 		r.Response.StatusCode, r.Message)
 }
-

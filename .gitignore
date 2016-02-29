@@ -23,6 +23,7 @@ _testmain.go
 *.test
 *.prof
 
-# my stuff, mac / intelliJ Idea
+# my stuff, mac / intelliJ Idea crap
 .DS_Store
 .idea
+go-otx-api-client.iml
