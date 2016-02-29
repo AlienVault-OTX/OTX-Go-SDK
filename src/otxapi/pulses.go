@@ -17,11 +17,11 @@ type PulseDetail struct {
 	References       []string                `json:"references,omitempty"`
 	Tags             []string                `json:"tags,omitempty"`
 	Indicators       []struct {
-	ID               *string                 `json:"_id"`
-	Indicator        *string                 `json:"indicator"`
-	Type             *string                 `json:"type"`
-	Description      *string                 `json:"description,omitempty"`
-}	`json:"indicators,omitempty"`
+		ID               *string                 `json:"_id"`
+		Indicator        *string                 `json:"indicator"`
+		Type             *string                 `json:"type"`
+		Description      *string                 `json:"description,omitempty"`
+	}                                        `json:"indicators,omitempty"`
 	Revision         *float32                `json:"revision,omitempty"`
 }
 
@@ -34,7 +34,7 @@ type OTXThreatIntelFeedService struct {
 }
 
 type ThreatIntelFeed struct {
-	Pulses      []PulseDetail	 `json:"results"`
+	Pulses      []PulseDetail     `json:"results"`
 	// These fields provide the page values for paginating through a set of
 	// results.  Any or all of these may be set to the zero value for
 	// responses that are not part of a paginated set, or for which there
