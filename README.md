@@ -30,10 +30,10 @@ Once you have your API Key, set it as an environment variable:
 ```echo $X_OTX_API_KEY```
 
 or in your go code:
-```os.Setenv("X_OTX_API_KEY", "db91e98e6dcac6303bd1522d3542f91fcb4be176ea262ecd892d39e0d82a218b")```
+```os.Setenv("X_OTX_API_KEY", "ab91e98e6dcac6303bd1522d3542f91fcb4be176ea262ecd892d39e0d82a218b")```
 
 For use with curl, or to write your own client, set the api key as a HTTP Header:
-```X-OTX-API-KEY: <apikey>```
+```X-OTX-API-KEY: "ab91e98e6dcac6303bd1522d3542f91fcb4be176ea262ecd892d39e0d82a218b"```
 
 
 ### Subscriptions
