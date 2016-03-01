@@ -48,12 +48,18 @@ func main() {
 		fmt.Println(*pulse_list.NextPageString)
 		for err == nil {
 			fmt.Printf("error not nil, trying page %v...\n", next_page)
-			opt := &otxapi.ListOptions{Page: next_page, PerPage: 4}
+			opt := &otxapi.ListOptions{Page: next_page, PerPage: 50}
 			pulse_list, _, err := client.ThreatIntel.List(opt)
 			if err != nil {
 				fmt.Printf("error: %v\n\n", err)
 			} else {
-				fmt.Printf("%v\n\n", otxapi.Stringify(pulse_list.Pulses[0].Name))
+				if len(pulse_list.Pulses) != 0 {
+					fmt.Printf("Count is %v", pulse_list.Count)
+					fmt.Printf("%v\n\n", otxapi.Stringify(pulse_list.Pulses[0].Name))
+				} else {
+					fmt.Printf("finished interation after %v pages...\n", next_page)
+					break
+				}
 			}
 			next_page++
 		}

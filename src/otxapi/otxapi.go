@@ -19,7 +19,6 @@ const (
 	userAgent            = "go-otx-api/" + libraryVersion
 	defaultBaseURL       = "https://otx.alienvault.com/"
 	subscriptionsURLPath = "api/v1/pulses/subscribed"
-	pulseID              = "56cdb0a04637f275671672f3"
 	pulseDetailURLPath   = "api/v1/pulses/"
 	userURLPath          = "api/v1/user/"
 	apiVersion           = "v1"
@@ -37,7 +36,6 @@ type Client struct {
 	UserAgent string
 
 	// OTX API Services
-	//Subscriptions     *OTXSubscriptionsService
 	UserDetail  *OTXUserDetailService
 	PulseDetail *OTXPulseDetailService
 	ThreatIntel *OTXThreatIntelFeedService
