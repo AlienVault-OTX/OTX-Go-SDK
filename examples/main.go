@@ -43,4 +43,19 @@ func main() {
 	} else {
 		fmt.Printf("%v\n\n\n\n", otxapi.Stringify(pulse_list))
 	}
+	next_page := 2
+	if pulse_list.NextPageString != nil {
+		fmt.Println(*pulse_list.NextPageString)
+		for err == nil {
+			fmt.Printf("error not nil, trying page %v...\n", next_page)
+			opt := &otxapi.ListOptions{Page: next_page, PerPage: 4}
+			pulse_list, _, err := client.ThreatIntel.List(opt)
+			if err != nil {
+				fmt.Printf("error: %v\n\n", err)
+			} else {
+				fmt.Printf("%v\n\n", otxapi.Stringify(pulse_list.Pulses[0].Name))
+			}
+			next_page++
+		}
+	}
 }

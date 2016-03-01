@@ -58,7 +58,7 @@ type Response struct {
 // support pagination.  our list options: ?limit=50&page_num=1
 type ListOptions struct {
 	// For paginated result sets, page of results to retrieve.
-	Page int `url:"page_num,omitempty"`
+	Page int `url:"page,omitempty"`
 
 	// For paginated result sets, the number of results to include per page.
 	PerPage int `url:"limit,omitempty"`
