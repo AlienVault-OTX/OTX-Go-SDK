@@ -17,6 +17,10 @@ See LICENSE
 ### Authors
 Bill Smartt, Security Engineer (@bsmartt13)
 
+### Contributing
+There's likely a lot of room for improvement here by a Golang expert.  Please send PRs <3
+
+
 ### Issues
 Please file any issues you find on github.com
 
