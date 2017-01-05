@@ -37,6 +37,9 @@ func APIKey(key string) ClientOption {
 // environment variables. If no environment variable names are specified,
 // the X_OTX_API_KEY, and ALIENVAULT_OTXAPI_KEY environment variables will be
 // checked.
+//
+// The returned ClientOption will return a non-nil error if it cannot find a
+// non-empty environment variable.
 func APIKeyFromEnv(names ...string) ClientOption {
 	return func(c *Client) error {
 		if len(names) == 0 {
@@ -106,6 +109,10 @@ type Client struct {
 	userAgent string
 	client    *http.Client
 	apiKey    string
+}
+
+func (c Client) String() string {
+	return fmt.Sprintf("%s; host=%q", c.userAgent, c.baseURL)
 }
 
 var ErrNoAPIKey = errors.New("api key not set in client")
