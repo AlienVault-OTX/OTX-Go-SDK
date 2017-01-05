@@ -14,26 +14,13 @@ import (
 )
 
 const (
-	get                  = "GET"
-	libraryVersion       = "0.1"
-	userAgent            = "go-otx-api/" + libraryVersion
-	defaultBaseURL       = "https://otx.alienvault.com/"
-	subscriptionsURLPath = "api/v1/pulses/subscribed"
-	pulseDetailURLPath   = "api/v1/pulses/"
-	userURLPath          = "api/v1/user/"
-	apiVersion           = "v1"
+	DefaultBaseURL   = "https://otx.alienvault.com"
+	DefaultUserAgent = "go-otx-api/0.2"
+
+	SubscriptionsURLPath = "api/v1/pulses/subscribed"
+	PulseDetailURLPath   = "api/v1/pulses/"
+	UserURLPath          = "api/v1/user/"
 )
-
-// A Client manages communication with the OTX API.
-type Client struct {
-	// HTTP client used to communicate with the API.
-	client *http.Client
-
-	// Base URL for API requests.  Defaults to the otx.alienvault.com:443.
-	// BaseURL should always be specified with a trailing slash
-	BaseURL *url.URL
-
-	UserAgent string
 
 	// OTX API Services
 	UserDetail  *OTXUserDetailService
