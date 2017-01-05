@@ -103,7 +103,9 @@ type PulseList struct {
 	//PrevPageNum  int   Coming soon
 	NextPageString *string `json:"next"`
 	PrevPageString *string `json:"prev"`
-	Count          int     `json:"count"`
+
+	// Count is the total number of results, across all pages.
+	Count int `json:"count"`
 }
 
 func (r PulseList) String() string {
