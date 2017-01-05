@@ -1,16 +1,12 @@
 package otxapi
 
 import (
-	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/google/go-querystring/query"
 	"io"
-	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
-	"reflect"
 )
 
 const (
@@ -80,192 +76,113 @@ func UserAgent(ua string) ClientOption {
 	}
 }
 
-func (c *OTXPulseDetailService) Get(id_string string) (PulseDetail, Response, error) {
-	client := &http.Client{}
-
-	req, _ := http.NewRequest(get, fmt.Sprintf("%s/%s/%s/", defaultBaseURL, pulseDetailURLPath, id_string), nil)
-	req.Header.Set("X-OTX-API-KEY", fmt.Sprintf("%s", os.Getenv("X_OTX_API_KEY")))
-
-	response, _ := client.Do(req)
-	resp := Response{Response: response}
-
-	contents, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		fmt.Printf("%s", err)
-		os.Exit(1)
-	}
-	pulse_detail := new(PulseDetail)
-	json.Unmarshal(contents, &(pulse_detail))
-	json.Unmarshal(contents, &(resp.Content))
-
-	return *pulse_detail, resp, err
-}
-
-func (c *OTXThreatIntelFeedService) List(opt *ListOptions) (ThreatIntelFeed, Response, error) {
-	client := &http.Client{}
-	requestpath, err := addOptions(defaultBaseURL + subscriptionsURLPath, opt)
-	if err != nil {
-		return ThreatIntelFeed{}, Response{}, err
+// NewClient returns a new OpenThreatExchange HTTP API client.
+func NewClient(options ...ClientOption) (*Client, error) {
+	c := &Client{
+		client:    http.DefaultClient,
+		userAgent: DefaultUserAgent,
+		baseURL:   DefaultBaseURL,
 	}
 
-	req, _ := http.NewRequest(get, requestpath, nil)
-	req.Header.Set("X-OTX-API-KEY", fmt.Sprintf("%s", os.Getenv("X_OTX_API_KEY")))
-
-	response, _ := client.Do(req)
-	resp := Response{Response: response}
-
-	contents, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		fmt.Printf("%s", err)
-		os.Exit(1)
-	}
-	pulse_list := new(ThreatIntelFeed)
-	err = json.Unmarshal(contents, &(pulse_list))
-	json.Unmarshal(contents, &(resp.Content))
-	if err != nil {
-		fmt.Println("error not nil on json unmarshall")
-		fmt.Println(err)
-	}
-
-	return *pulse_list, resp, err
-}
-
-func (c *OTXUserDetailService) Get() (UserDetail, *Response, error) {
-
-	req, err := c.client.NewRequest(get, userURLPath, nil)
-	if err != nil {
-		return UserDetail{}, nil, err
-	}
-	req.Header.Set("X-OTX-API-KEY", fmt.Sprintf("%s", os.Getenv("X_OTX_API_KEY")))
-
-	userdetail := &UserDetail{}
-	resp, err := c.client.Do(req, userdetail)
-	if err != nil {
-		return UserDetail{}, resp, err
-	}
-	err = json.Unmarshal(resp.RawContent, &(userdetail))
-	json.Unmarshal(resp.RawContent, &(resp.Content))
-
-	return *userdetail, resp, err
-}
-
-// NewClient returns a new OTX API client.  If a nil httpClient is
-// provided, http.DefaultClient will be used.
-func NewClient(httpClient *http.Client) *Client {
-	if httpClient == nil {
-		httpClient = http.DefaultClient
-	}
-	baseURL, _ := url.Parse(defaultBaseURL)
-	c := &Client{client: httpClient, BaseURL: baseURL, UserAgent: userAgent}
-
-	c.UserDetail = &OTXUserDetailService{client: c}
-	return c
-}
-
-// Do sends an API request and returns the API response.  The API response is
-// JSON decoded and stored in the value pointed to by v, or returned as an
-// error if an API error has occurred.  If v implements the io.Writer
-// interface, the raw response body will be written to v, without attempting to
-// first decode it.
-func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	response := newResponse(resp)
-
-	// check response for error
-		err = CheckResponse(resp)
-		if err != nil {
-			// even though there was an error, we still return the response
-			// in case the caller wants to inspect it further
-			return response, err
-		}
-
-	content, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("%s", err)
-		os.Exit(1)
-	}
-	response.RawContent = content
-	return response, err
-}
-
-// NewRequest creates an API request. A relative URL can be provided in urlStr,
-// in which case it is resolved relative to the BaseURL of the Client.
-// Relative URLs should always be specified without a preceding slash.  If
-// specified, the value pointed to by body is JSON encoded and included as the
-// request body.
-func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Request, error) {
-	rel, err := url.Parse(urlStr)
-	if err != nil {
-		return nil, err
-	}
-
-	u := c.BaseURL.ResolveReference(rel)
-
-	var buf io.ReadWriter
-	if body != nil {
-		buf = new(bytes.Buffer)
-		err := json.NewEncoder(buf).Encode(body)
-		if err != nil {
-			return nil, err
+	// Apply any client options.
+	for _, option := range options {
+		if err := option(c); err != nil {
+			return nil, fmt.Errorf("applying client option: %v", err)
 		}
 	}
 
-	req, err := http.NewRequest(method, u.String(), buf)
+	c.User = &OTXUserDetailService{client: c}
+	c.Pulses = &OTXPulseDetailService{client: c}
+
+	return c, nil
+}
+
+// A Client manages communication with the OTX API.
+type Client struct {
+	User   *OTXUserDetailService
+	Pulses *OTXPulseDetailService
+
+	baseURL   string
+	userAgent string
+	client    *http.Client
+	apiKey    string
+}
+
+var ErrNoAPIKey = errors.New("api key not set in client")
+
+// newRequest returns a new *http.Request, with the X-OTX-API-KEY and
+// User-Agent headers set.
+func (c *Client) newRequest(method, urlPath string, body io.Reader) (*http.Request, error) {
+	// Sanitize the URL path, by removing any leading "/" characters.
+	start := 0
+	for i := start; urlPath[i] == '/'; i++ {
+		start = i
+	}
+	urlPath = urlPath[start:]
+
+	req, err := http.NewRequest(method, c.baseURL+"/"+urlPath, body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new request: %v", err)
 	}
 
-	if c.UserAgent != "" {
-		req.Header.Add("User-Agent", c.UserAgent)
+	// Set the user agent header.
+	req.Header.Set("User-Agent", c.userAgent)
+
+	if c.apiKey == "" {
+		return nil, ErrNoAPIKey
 	}
+	req.Header.Set("X-OTX-API-KEY", c.apiKey)
+
 	return req, nil
 }
 
-// newResponse creates a new Response for the provided http.Response.
-func newResponse(r *http.Response) *Response {
-	response := &Response{Response: r}
-	return response
-}
+// do executes the *http.Request.
+//
+// On a successful request where the server responds with a 200-series HTTP
+// status code, this method will attempt to unmarshal the JSON-encoded
+// response body into v.
+//
+// If the server responds with an unexpected status code, this method will attempt
+// to unmarshal the JSON response body into an *APIError, and return it.
+func (c *Client) do(req *http.Request, v interface{}) error {
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
-// CheckResponse checks the API response for errors, and returns them if
-// present.  A response is considered an error if it has a status code outside
-// the 200 range.  API error responses are expected to have either no response
-// body, or a JSON response body that maps to ErrorResponse.  Any other
-// response body will be silently ignored.
-func CheckResponse(r *http.Response) error {
-	if c := r.StatusCode; 200 <= c && c <= 299 {
+	switch resp.StatusCode {
+	case http.StatusOK:
+		if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
+			return fmt.Errorf("cannot decode response body: %v", err)
+		}
 		return nil
 	}
-	errorResponse := &ErrorResponse{Response: r}
-	data, err := ioutil.ReadAll(r.Body)
-	if err == nil && data != nil {
-		json.Unmarshal(data, errorResponse)
+
+	// If we manage to fall through to here, we have an unexpected status
+	// code. Attempt to unmarshal the response to an *APIError.
+	var apiErr APIError
+	if err := json.NewDecoder(resp.Body).Decode(&apiErr); err != nil {
+		return fmt.Errorf("json unmarshal failed: %v", err)
 	}
-	return errorResponse
+	apiErr.statusCode = resp.StatusCode
+
+	return &apiErr
 }
 
-type Error struct {
-	Message    string
+// IsAPIError returns a bool indicating whether or not the given error is a
+// *APIError.
+func IsAPIError(err error) bool {
+	_, ok := err.(*APIError)
+	return ok
 }
 
-func (e *Error) Error() string {
-	return fmt.Sprintf("error: %v",
-		e.Message)
+type APIError struct {
+	Message string `json:"detail"`
+
+	statusCode int
 }
 
-type ErrorResponse struct {
-	Response *http.Response // HTTP response that caused this error
-	Message  string         `json:"detail"` // error message
-}
-
-func (r *ErrorResponse) Error() string {
-	return fmt.Sprintf("%v %v: %d %v",
-		r.Response.Request.Method, r.Response.Request.URL,
-		r.Response.StatusCode, r.Message)
+func (e *APIError) Error() string {
+	return fmt.Sprintf("%s (status %d)", e.Message, e.statusCode)
 }
