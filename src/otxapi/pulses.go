@@ -35,12 +35,12 @@ type Pulse struct {
 	Author            string           `json:"author_name"`
 	Name              string           `json:"name"`
 	Description       string           `json:"description,omitempty"`
-	CreatedAt         string           `json:"created,omitempty"`
-	ModifiedAt        string           `json:"modified"`
+	CreatedAt         Timestamp        `json:"created,omitempty"`
+	ModifiedAt        Timestamp        `json:"modified"`
 	References        []string         `json:"references,omitempty"`
 	Tags              []string         `json:"tags,omitempty"`
 	Indicators        []PulseIndicator `json:"indicators,omitempty"`
-	Revision          int              `json:"revision,omitempty"`
+	Revision          float32          `json:"revision,omitempty"`
 	TLP               string           `json:"tlp"`
 	Public            bool             `json:"public"`
 	Adversary         string           `json:"adversary"`
