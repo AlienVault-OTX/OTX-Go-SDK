@@ -21,7 +21,7 @@ type OTXUserDetailService struct {
 	client *Client
 }
 
-func (c *OTXUserDetailService) Get() (*UserDetail, error) {
+func (c *OTXUserDetailService) Details() (*UserDetail, error) {
 	req, err := c.client.newRequest(http.MethodGet, UserURLPath, nil)
 	if err != nil {
 		return nil, err
