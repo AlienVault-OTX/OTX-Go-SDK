@@ -22,48 +22,62 @@ const (
 	UserURLPath          = "api/v1/user/"
 )
 
-	// OTX API Services
-	UserDetail  *OTXUserDetailService
-	PulseDetail *OTXPulseDetailService
-	ThreatIntel *OTXThreatIntelFeedService
-}
+// ClientOption is a function that configures a *Client.
+type ClientOption func(*Client) error
 
-// Response is a otx API response.  This wraps the standard http.Response
-// returned from OTX and provides convenient access to things like
-// pagination links.
-type Response struct {
-	*http.Response
-	// RawContent - raw stream
-	RawContent []uint8
-	// Content - additional way to access the content body of the response.
-	Content map[string]interface{} `json:"results,omitempty"`
-}
-
-// ListOptions specifies the optional parameters to various List methods that
-// support pagination.  our list options: ?limit=50&page_num=1
-type ListOptions struct {
-	// For paginated result sets, page of results to retrieve.
-	Page int `url:"page,omitempty"`
-
-	// For paginated result sets, the number of results to include per page.
-	PerPage int `url:"limit,omitempty"`
-}
-
-// addOptions adds the parameters in opt as URL query parameters to s.  opt
-// must be a struct whose fields may contain "url" tags.
-func addOptions(s string, opt ListOptions) (string, error) {
-	u, err := url.Parse(s)
-	if err != nil {
-		return "", err
+// APIKey sets the API key used by a *Client for authorizing requests to the
+// OpenThreatExchange HTTP API.
+func APIKey(key string) ClientOption {
+	return func(c *Client) error {
+		if key == "" {
+			return errors.New("empty api key")
+		}
+		c.apiKey = key
+		return nil
 	}
+}
 
-	qs, err := query.Values(&opt)
-	if err != nil {
-		return "", err
+// APIKeyFromEnv sets the API key used by the *Client from one of the named
+// environment variables. If no environment variable names are specified,
+// the X_OTX_API_KEY, and ALIENVAULT_OTXAPI_KEY environment variables will be
+// checked.
+func APIKeyFromEnv(names ...string) ClientOption {
+	return func(c *Client) error {
+		if len(names) == 0 {
+			names = []string{
+				"X_OTX_API_KEY",
+				"ALIENVAULT_OTXAPI_KEY",
+			}
+		}
+		for _, name := range names {
+			if v := os.Getenv(name); v != "" {
+				c.apiKey = v
+				return nil
+			}
+		}
+		return errors.New("api key not set in environment")
 	}
+}
 
-	u.RawQuery = qs.Encode()
-	return u.String(), nil
+// HTTPClient sets a *Client's internal *http.Client. If hc is nil, then
+// http.DefaultClient is used.
+func HTTPClient(hc *http.Client) ClientOption {
+	return func(c *Client) error {
+		if hc == nil {
+			c.client = http.DefaultClient
+			return nil
+		}
+		c.client = hc
+		return nil
+	}
+}
+
+// UserAgent sets the User-Agent HTTP header for requests made by a *Client.
+func UserAgent(ua string) ClientOption {
+	return func(c *Client) error {
+		c.userAgent = ua
+		return nil
+	}
 }
 
 func (c *OTXPulseDetailService) Get(id_string string) (PulseDetail, Response, error) {
