@@ -22,6 +22,7 @@ func (t Timestamp) String() string {
 func (ts *Timestamp) UnmarshalJSON(data []byte) error {
 	layouts := []string{
 		time.RFC3339,
+		"\"2006-01-02T15:04:05.0000\"",
 		"\"2006-01-02T15:04:05\"",
 		"\\\"2006-01-02T15:04:05\\\"",
 	}
