@@ -219,27 +219,6 @@ type ListOptions struct {
 	PerPage int `url:"limit,omitempty"`
 }
 
-// addOptions adds the parameters in opt as URL query parameters to s.  opt
-// must be a struct whose fields may contain "url" tags.
-func addOptions(s string, opt *ListOptions) (string, error) {
-	if opt == nil {
-		return s, nil
-	}
-
-	u, err := url.Parse(s)
-	if err != nil {
-		return "", err
-	}
-
-	qs, err := query.Values(opt)
-	if err != nil {
-		return "", err
-	}
-
-	u.RawQuery = qs.Encode()
-	return u.String(), nil
-}
-
 // addURLOptions modifies the query parameters of u, in place.
 //
 // This function will return a non-nil error if u is nil.
