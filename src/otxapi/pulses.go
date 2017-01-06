@@ -1,7 +1,6 @@
 package otxapi
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -48,27 +47,42 @@ type Pulse struct {
 	Industries        []string         `json:"industries"`
 }
 
-func (r Pulse) String() string {
-	return Stringify(r)
+func (p Pulse) String() string {
+	//return Stringify(r)
+	s := fmt.Sprintf("%s\t%s\t%s\t(rev %f)", p.ID, p.Name, p.CreatedAt, p.Revision)
+	for _, ind := range p.Indicators {
+		s += fmt.Sprintf("\n\t%s", ind.String())
+	}
+	return s
 }
 
 type PulseIndicator struct {
-	Content      string   `json:"content"`
-	Indicator    string   `json:"indicator"`
-	Description  string   `json:"description,omitempty"`
-	Created      string   `json:"created"`
-	Active       int      `json:"is_active"`
-	Title        string   `json:"title"`
-	AccessReason string   `json:"access_reason"`
-	AccessType   string   `json:"access_type"`
-	AccessGroups []string `json:"access_groups"`
-	Type         string   `json:"type"`
-	ID           string   `json:"id"`
-	Observations int      `json:"observations"`
+	Content      string     `json:"content"`
+	Indicator    string     `json:"indicator"`
+	Description  string     `json:"description,omitempty"`
+	Created      Timestamp  `json:"created"`
+	Expiration   *Timestamp `json:"expiration,omitempty"`
+	Active       int        `json:"is_active"`
+	Title        string     `json:"title"`
+	AccessReason string     `json:"access_reason"`
+	AccessType   string     `json:"access_type"`
+	AccessGroups []string   `json:"access_groups"`
+	Type         string     `json:"type"`
+	ID           int        `json:"id"`
+	Observations int        `json:"observations"`
 
 	// These fields are currently always nil, in responses.
-	Role       json.RawMessage `json:"role"`
-	Expiration json.RawMessage `json:"expiration"`
+	//Role json.RawMessage `json:"role"`
+}
+
+func (p PulseIndicator) String() string {
+	return fmt.Sprintf("%d\t%s\t%s\t%s\t%s",
+		p.ID,
+		p.Created,
+		p.Title,
+		p.Type,
+		p.Indicator,
+	)
 }
 
 // List returns a *PulseList, which maps to a single page of pulses the user
