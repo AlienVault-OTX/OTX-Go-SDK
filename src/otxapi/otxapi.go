@@ -94,6 +94,10 @@ func NewClient(options ...ClientOption) (*Client, error) {
 		}
 	}
 
+	if c.apiKey == "" {
+		return nil, ErrNoAPIKey
+	}
+
 	c.User = &OTXUserDetailService{client: c}
 	c.Pulses = &OTXPulseDetailService{client: c}
 
