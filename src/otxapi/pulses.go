@@ -73,7 +73,17 @@ type PulseIndicator struct {
 
 // List returns a *PulseList, which maps to a single page of pulses the user
 // is subscribed to.
+//
+// Passing nil *ListOptions will result in retrieving the first page of
+// subscribed pulses, with the maximum number of results for the page (20).
 func (svc *OTXPulseDetailService) List(opt *ListOptions) (*PulseList, error) {
+	if opt == nil {
+		opt = &ListOptions{
+			Page:    1,
+			PerPage: 20,
+		}
+	}
+
 	req, err := svc.client.newRequest(http.MethodGet, SubscriptionsURLPath, nil)
 	if err != nil {
 		return nil, err
@@ -163,6 +173,9 @@ func parseListOptions(urlStr string) (*ListOptions, error) {
 	page, err := strconv.Atoi(u.Query().Get("page"))
 	if err != nil {
 		return nil, err
+	}
+	if page < 0 {
+		page = 1
 	}
 
 	limit, err := strconv.Atoi(u.Query().Get("limit"))
