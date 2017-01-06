@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/AlienVault-Labs/OTX-Go-SDK/src/otxapi"
+	"github.com/AlienVault-Labs/OTX-Go-SDK"
 )
 
 func main() {

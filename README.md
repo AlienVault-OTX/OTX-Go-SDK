@@ -14,7 +14,11 @@ Get Pulse (with IOCs) by pulse_id
 ### Installing
 
 ```
-$ go get -u github.com/AlienVault-Labs/OTX-Go-SDK/src/otaxpi
+$ go get -u github.com/AlienVault-Labs/OTX-Go-SDK
+
+- or -
+
+$ go get -u gopkg.in/AlienVault-Labs/OTX-Go-SDK.v0
 ```
 
 ### License
