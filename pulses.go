@@ -41,7 +41,7 @@ type Pulse struct {
 	Indicators        []PulseIndicator `json:"indicators,omitempty"`
 	Revision          float32          `json:"revision,omitempty"`
 	TLP               string           `json:"tlp"`
-	Public            bool             `json:"public"`
+	Public            int             `json:"public"`
 	Adversary         string           `json:"adversary"`
 	TargetedCountries []string         `json:"targeted_countries"`
 	Industries        []string         `json:"industries"`
