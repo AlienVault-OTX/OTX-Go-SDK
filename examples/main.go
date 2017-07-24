@@ -6,62 +6,66 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"otxapi"
 	"os"
+
+	"github.com/AlienVault-Labs/OTX-Go-SDK"
 )
 
 func main() {
-	// you can set your api key environment variable however you prefer..Including inline!
+	one := flag.Bool("one", false, "Only print one pulse, then exit")
+	flag.Parse()
 
-	os.Setenv("X_OTX_API_KEY", "mysecretkey")
-	fmt.Println("Found API Key in environment var X_OTX_API_KEY! Validating key...")
-	fmt.Println(fmt.Sprintf("%s", os.Getenv("X_OTX_API_KEY")))
-	client := otxapi.NewClient(nil)
-	// get user details, easy way to validate api key
-	user_detail, _, err := client.UserDetail.Get()
+	// Create a new client, searching the environment for an API key.
+	client, err := otxapi.NewClient(otxapi.APIKeyFromEnv())
 	if err != nil {
-		fmt.Printf("Fatal error: %v\n\n", err)
-		fmt.Println("Please ensure your API KEY is valid (i.e. `echo $X_OTX_API_KEY`)")
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
-	} else {
-		fmt.Printf("Successfully authenticated with api key as: %v\n\n", otxapi.Stringify(user_detail.Username))
 	}
 
-	// now let's try getting some IOCs
-	pulse_detail, _, err := client.PulseDetail.Get("56cdb0a04637f275671672f3")
+	// Get your user information.
+	user, err := client.User.Details()
 	if err != nil {
-		fmt.Printf("error: %v\n\n", err)
-	} else {
-		fmt.Printf("%v\n\n\n\n", otxapi.Stringify(pulse_detail))
+		fmt.Fprintln(os.Stderr, "could not get user details:", err)
+		os.Exit(2)
 	}
-	opt := &otxapi.ListOptions{Page: 1, PerPage: 4}
-	pulse_list, _, err := client.ThreatIntel.List(opt)
+	fmt.Println(user)
 
+	// Get the first page of pulses we are subscribed to, and pretty-print
+	// them.
+	plist, err := client.Pulses.List(nil)
 	if err != nil {
-		fmt.Printf("error: %v\n\n", err)
-	} else {
-		fmt.Printf("%v\n\n\n\n", otxapi.Stringify(pulse_list))
+		fmt.Fprintln(os.Stderr, "could not get first page of pulses:", err)
+		os.Exit(2)
 	}
-	next_page := 2
-	if pulse_list.NextPageString != nil {
-		fmt.Println(*pulse_list.NextPageString)
-		for err == nil {
-			fmt.Printf("error not nil, trying page %v...\n", next_page)
-			opt := &otxapi.ListOptions{Page: next_page, PerPage: 50}
-			pulse_list, _, err := client.ThreatIntel.List(opt)
-			if err != nil {
-				fmt.Printf("error: %v\n\n", err)
-			} else {
-				if len(pulse_list.Pulses) != 0 {
-					fmt.Printf("Count is %v", pulse_list.Count)
-					fmt.Printf("%v\n\n", otxapi.Stringify(pulse_list.Pulses[0].Name))
-				} else {
-					fmt.Printf("finished interation after %v pages...\n", next_page)
-					break
-				}
-			}
-			next_page++
+	if *one {
+		fmt.Println(plist.Pulses[0])
+		return
+	}
+	for _, pulse := range plist.Pulses {
+		fmt.Println(pulse)
+	}
+
+	// Get the rest of the pages of pulses we are subscribed to, and
+	// pretty-print them.
+	for {
+		opts, err := plist.NextPageOptions()
+		if err != nil && err == otxapi.ErrNoPage {
+			// We are on the last page.
+			break
+		} else if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(2)
+		}
+
+		plist, err = client.Pulses.List(opts)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "error getting next page of results:", err)
+			os.Exit(2)
+		}
+		for _, pulse := range plist.Pulses {
+			fmt.Println(pulse)
 		}
 	}
 }

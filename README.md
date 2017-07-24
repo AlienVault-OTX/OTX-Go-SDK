@@ -11,6 +11,16 @@ Validate api key / obtain user statistics
 Get Subscriptions
 Get Pulse (with IOCs) by pulse_id
 
+### Installing
+
+```
+$ go get -u github.com/AlienVault-Labs/OTX-Go-SDK
+
+- or -
+
+$ go get -u gopkg.in/AlienVault-Labs/OTX-Go-SDK.v0
+```
+
 ### License
 See LICENSE
 

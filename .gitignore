@@ -27,3 +27,6 @@ _testmain.go
 .DS_Store
 .idea
 go-otx-api-client.iml
+
+# editor backup files
+*.swp

@@ -19,15 +19,29 @@ func (t Timestamp) String() string {
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
 // Time is expected in RFC3339 or Unix format.
-func (t *Timestamp) UnmarshalJSON(data []byte) (err error) {
-	str := string(data)
-	i, err := strconv.ParseInt(str, 10, 64)
-	if err == nil {
-		(*t).Time = time.Unix(i, 0)
-	} else {
-		(*t).Time, err = time.Parse(`"`+time.RFC3339+`"`, str)
+func (ts *Timestamp) UnmarshalJSON(data []byte) error {
+	layouts := []string{
+		time.RFC3339,
+		"\"2006-01-02T15:04:05.0000\"",
+		"\"2006-01-02T15:04:05\"",
+		"\\\"2006-01-02T15:04:05\\\"",
 	}
-	return
+	for _, layout := range layouts {
+		t, err := time.Parse(layout, string(data))
+		if err == nil {
+			ts.Time = t
+			return nil
+		}
+	}
+
+	// If we fall through to here, let's try to parse the timestamp as
+	// a UNIX time.
+	n, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		return err
+	}
+	ts.Time = time.Unix(n, 0)
+	return nil
 }
 
 // Equal reports whether t and u are equal based on time.Equal
