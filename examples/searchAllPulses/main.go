@@ -28,6 +28,8 @@ func main() {
 		err := SearchAllPulses(client, opt, pulseCh, responseCh)
 		if err != nil {
 			fmt.Println(err)
+      close(pulseCh)
+      close(responseCh)
 		}
 	}()
 
