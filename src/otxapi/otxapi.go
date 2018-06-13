@@ -15,12 +15,14 @@ import (
 
 const (
 	get                  = "GET"
+	post                 = "POST"
 	libraryVersion       = "0.1"
 	userAgent            = "go-otx-api/" + libraryVersion
 	defaultBaseURL       = "https://otx.alienvault.com/"
 	subscriptionsURLPath = "api/v1/pulses/subscribed"
-	pulseDetailURLPath   = "api/v1/pulses/"
+	pulseURLPath         = "api/v1/pulses/"
 	userURLPath          = "api/v1/user/"
+	searchPulsesURLPath  = "api/v1/search/pulses"
 	apiVersion           = "v1"
 )
 
@@ -36,9 +38,10 @@ type Client struct {
 	UserAgent string
 
 	// OTX API Services
-	UserDetail  *OTXUserDetailService
-	PulseDetail *OTXPulseDetailService
-	ThreatIntel *OTXThreatIntelFeedService
+	UserDetail   *OTXUserDetailService
+	PulseDetail  *OTXPulseDetailService
+	ThreatIntel  *OTXThreatIntelFeedService
+	SearchPulses *OTXSearchPulsesSearvice
 }
 
 // Response is a otx API response.  This wraps the standard http.Response
@@ -60,6 +63,13 @@ type ListOptions struct {
 
 	// For paginated result sets, the number of results to include per page.
 	PerPage int `url:"limit,omitempty"`
+
+	// For search/pulses sort order
+	// Order by one of these fields: modified, created, subscriber_count
+	Sort string `url:"sort,omitempty"`
+
+	// Query string for search/pulses
+	Query string `url:"q,omitempty"`
 }
 
 // addOptions adds the parameters in opt as URL query parameters to s.  opt
@@ -84,10 +94,10 @@ func addOptions(s string, opt interface{}) (string, error) {
 	return u.String(), nil
 }
 
-func (c *OTXPulseDetailService) Get(id_string string) (PulseDetail, Response, error) {
+func (c *OTXPulseDetailService) Get(id_string string) (Pulse, Response, error) {
 	client := &http.Client{}
 
-	req, _ := http.NewRequest(get, fmt.Sprintf("%s/%s/%s/", defaultBaseURL, pulseDetailURLPath, id_string), nil)
+	req, _ := http.NewRequest(get, fmt.Sprintf("%s/%s/%s/", defaultBaseURL, pulseURLPath, id_string), nil)
 	req.Header.Set("X-OTX-API-KEY", fmt.Sprintf("%s", os.Getenv("X_OTX_API_KEY")))
 
 	response, _ := client.Do(req)
@@ -98,7 +108,7 @@ func (c *OTXPulseDetailService) Get(id_string string) (PulseDetail, Response, er
 		fmt.Printf("%s", err)
 		os.Exit(1)
 	}
-	pulse_detail := new(PulseDetail)
+	pulse_detail := new(Pulse)
 	json.Unmarshal(contents, &(pulse_detail))
 	json.Unmarshal(contents, &(resp.Content))
 
@@ -107,7 +117,7 @@ func (c *OTXPulseDetailService) Get(id_string string) (PulseDetail, Response, er
 
 func (c *OTXThreatIntelFeedService) List(opt *ListOptions) (ThreatIntelFeed, Response, error) {
 	client := &http.Client{}
-	requestpath, err := addOptions(defaultBaseURL + subscriptionsURLPath, opt)
+	requestpath, err := addOptions(defaultBaseURL+subscriptionsURLPath, opt)
 	if err != nil {
 		return ThreatIntelFeed{}, Response{}, err
 	}
@@ -153,6 +163,32 @@ func (c *OTXUserDetailService) Get() (UserDetail, *Response, error) {
 	return *userdetail, resp, err
 }
 
+func (c *OTXSearchPulsesSearvice) Search(opt *ListOptions) (PulseSearchResponse, Response, error) {
+	client := &http.Client{}
+	requestpath, err := addOptions(defaultBaseURL+searchPulsesURLPath, opt)
+
+	req, _ := http.NewRequest(get, requestpath, nil)
+	req.Header.Set("X-OTX-API-KEY", fmt.Sprintf("%s", os.Getenv("X_OTX_API_KEY")))
+
+	response, _ := client.Do(req)
+	resp := Response{Response: response}
+
+	contents, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		fmt.Printf("%s", err)
+		os.Exit(1)
+	}
+	pulseSearchResponse := new(PulseSearchResponse)
+	err = json.Unmarshal(contents, &(pulseSearchResponse))
+	json.Unmarshal(contents, &(resp.Content))
+	if err != nil {
+		fmt.Println("error not nil on json unmarshall")
+		fmt.Println(err)
+	}
+
+	return *pulseSearchResponse, resp, err
+}
+
 // NewClient returns a new OTX API client.  If a nil httpClient is
 // provided, http.DefaultClient will be used.
 func NewClient(httpClient *http.Client) *Client {
@@ -182,12 +218,12 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 	response := newResponse(resp)
 
 	// check response for error
-		err = CheckResponse(resp)
-		if err != nil {
-			// even though there was an error, we still return the response
-			// in case the caller wants to inspect it further
-			return response, err
-		}
+	err = CheckResponse(resp)
+	if err != nil {
+		// even though there was an error, we still return the response
+		// in case the caller wants to inspect it further
+		return response, err
+	}
 
 	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -255,7 +291,7 @@ func CheckResponse(r *http.Response) error {
 }
 
 type Error struct {
-	Message    string
+	Message string
 }
 
 func (e *Error) Error() string {
