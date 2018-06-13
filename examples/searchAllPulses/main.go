@@ -33,12 +33,12 @@ func main() {
 		}
 	}()
 
-	go func(doneCh chan bool) {
+	go func() {
 		for result := range pulseCh {
 			fmt.Printf("%v : %v\n", *result.ID, *result.Name)
 		}
 		doneCh <- true
-	}(doneCh)
+	}()
 
 	<-doneCh
 }
