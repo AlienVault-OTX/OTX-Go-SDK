@@ -7,14 +7,14 @@ package main
 
 import (
 	"fmt"
-	"otxapi"
 	"os"
+	"otxapi"
 )
 
 func main() {
 	// you can set your api key environment variable however you prefer..Including inline!
 
-	os.Setenv("X_OTX_API_KEY", "mysecretkey")
+	os.Setenv("X_OTX_API_KEY", "myotxapikey")
 	fmt.Println("Found API Key in environment var X_OTX_API_KEY! Validating key...")
 	fmt.Println(fmt.Sprintf("%s", os.Getenv("X_OTX_API_KEY")))
 	client := otxapi.NewClient(nil)
