@@ -16,7 +16,7 @@ func main() {
 
 	os.Setenv("X_OTX_API_KEY", "mysecretkey")
 	fmt.Println("Found API Key in environment var X_OTX_API_KEY! Validating key...")
-	fmt.Println(fmt.Sprintf("%s", os.Getenv("X_OTX_API_KEY")))
+	fmt.Println(os.Getenv("X_OTX_API_KEY"))
 	client := otxapi.NewClient(nil)
 	// get user details, easy way to validate api key
 	user_detail, _, err := client.UserDetail.Get()
